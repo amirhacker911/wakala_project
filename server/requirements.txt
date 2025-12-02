@@ -9,3 +9,4 @@ python-multipart
 sqlmodel
 python-jose
 passlib[bcrypt]
+psycopg2-binary
