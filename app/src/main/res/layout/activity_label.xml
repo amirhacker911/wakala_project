@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" >
+    <LinearLayout android:orientation="vertical" android:padding="16dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <ImageView android:id="@+id/sample_image" android:layout_width="match_parent" android:layout_height="300dp" android:scaleType="fitCenter"/>
+        <EditText android:id="@+id/edt_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Label (e.g., teamA)"/>
+        <EditText android:id="@+id/edt_round" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Round number"/>
+        <EditText android:id="@+id/edt_match" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Match number"/>
+        <Button android:id="@+id/btn_save_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Save Label"/>
+    </LinearLayout>
+</ScrollView>

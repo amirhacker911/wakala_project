@@ -1,0 +1,76 @@
+import os
+from pathlib import Path
+
+MODEL_DIR = Path(__file__).resolve().parents[2] / 'models'
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+class ModelWrapper:
+    def __init__(self):
+        self.keras_model = None
+        self.tflite_interpreter = None
+        self.model_type = None
+        self._load_any_model()
+
+    def _find_model_file(self):
+        for ext in ('.h5', '.hdf5'):
+            for p in MODEL_DIR.glob(f'*{ext}'):
+                return 'keras', p
+        for p in MODEL_DIR.glob('*.tflite'):
+            return 'tflite', p
+        return None, None
+
+    def _load_any_model(self):
+        model_kind, path = self._find_model_file()
+        if not path:
+            print('No model file found in', MODEL_DIR)
+            return
+        if model_kind == 'keras':
+            try:
+                from tensorflow.keras.models import load_model
+                self.keras_model = load_model(str(path))
+                self.model_type = 'keras'
+                print('Loaded Keras model:', path)
+            except Exception as e:
+                print('Failed to load Keras model:', e)
+        elif model_kind == 'tflite':
+            try:
+                import tensorflow as tf
+                self.tflite_interpreter = tf.lite.Interpreter(model_path=str(path))
+                self.tflite_interpreter.allocate_tensors()
+                self.model_type = 'tflite'
+                print('Loaded TFLite model:', path)
+            except Exception as e:
+                print('Failed to load TFLite model:', e)
+
+    def predict(self, input_data):
+        if self.model_type == 'keras' and self.keras_model:
+            import numpy as np
+            x = self._prepare_input(input_data)
+            preds = self.keras_model.predict(x)
+            return preds.tolist()
+        elif self.model_type == 'tflite' and self.tflite_interpreter:
+            import numpy as np
+            x = self._prepare_input(input_data)
+            inp_details = self.tflite_interpreter.get_input_details()
+            out_details = self.tflite_interpreter.get_output_details()
+            self.tflite_interpreter.set_tensor(inp_details[0]['index'], x.astype(inp_details[0]['dtype']))
+            self.tflite_interpreter.invoke()
+            out = self.tflite_interpreter.get_tensor(out_details[0]['index'])
+            return out.tolist()
+        else:
+            raise RuntimeError('No model loaded. Place a .h5 or .tflite in server/models/ or run training.')
+
+    def predict_from_bytes(self, b):
+        try:
+            import json
+            data = json.loads(b.decode('utf-8'))
+            return self.predict(data.get('input'))
+        except Exception:
+            raise RuntimeError('predict_from_bytes: unsupported bytes format. Provide JSON or implement preprocessing.')
+
+    def _prepare_input(self, input_data):
+        import numpy as np
+        arr = np.array(input_data)
+        if arr.ndim == 1:
+            arr = arr.reshape((1,) + arr.shape)
+        return arr

@@ -1,0 +1,11 @@
+{
+  "tf_available": false,
+  "fallback": "random_forest",
+  "joblib_path": "/mnt/data/Wakala_PRO_FULL_BUILD_COMPLETE/server/ai_service/tflite_models/model_rf.joblib",
+  "sample_dataset": "/mnt/data/Wakala_PRO_FULL_BUILD_COMPLETE/server/ai_service/tflite_models/sample_dataset.npz",
+  "files_created": [
+    "model_meta.json",
+    "model_rf.joblib",
+    "sample_dataset.npz"
+  ]
+}

@@ -1,0 +1,382 @@
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, BackgroundTasks
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlmodel import SQLModel, Field, Session, create_engine, select
+from typing import Optional, List
+from pydantic import BaseModel, EmailStr
+from passlib.context import CryptContext
+from jose import jwt, JWTError
+import os, time, json, shutil, subprocess
+from datetime import datetime, timedelta
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+# load env
+from dotenv import load_dotenv
+load_dotenv()
+
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./wakala.db')
+SECRET_KEY = os.getenv('SECRET_KEY', 'change_this_to_a_strong_secret')
+ALGORITHM = 'HS256'
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES', '1440'))
+
+BASE_DIR = Path(__file__).parent.resolve()
+UPLOAD_DIR = BASE_DIR / 'uploads'
+MODELS_DIR = UPLOAD_DIR / 'models'
+DATASETS_DIR = UPLOAD_DIR / 'datasets'
+USERS_DIR = UPLOAD_DIR
+for d in (UPLOAD_DIR, MODELS_DIR, DATASETS_DIR):
+    d.mkdir(parents=True, exist_ok=True)
+
+pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+
+engine = create_engine(DATABASE_URL, echo=False, connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {})
+
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: EmailStr
+    hashed_password: str
+    consent: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_admin: bool = False
+
+class ModelRecord(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    path: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    sha256: Optional[str] = None
+
+
+class Subscription(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_email: Optional[EmailStr] = None
+    plan: str = 'free'  # free, pro, enterprise
+    active_until: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ts: datetime = Field(default_factory=datetime.utcnow)
+    level: str = 'INFO'
+    message: str = ''
+    meta: Optional[str] = None
+
+SQLModel.metadata.create_all(engine)
+
+app = FastAPI(title='WakalaFakhrAlArab API', version='1.0')
+
+# serve admin static files
+PUBLIC_DIR = BASE_DIR / 'public'
+if PUBLIC_DIR.exists():
+    app.mount('/admin', StaticFiles(directory=str(PUBLIC_DIR), html=True), name='admin')
+
+
+# utilities
+def create_user(session: Session, email: str, password: str):
+    hashed = pwd_context.hash(password)
+    user = User(email=email, hashed_password=hashed)
+    session.add(user); session.commit(); session.refresh(user)
+    log('INFO', f'User created {email}')
+    return user
+
+def authenticate_user(session: Session, email: str, password: str):
+    stmt = select(User).where(User.email == email)
+    user = session.exec(stmt).first()
+    if not user:
+        return False
+    if not pwd_context.verify(password, user.hashed_password):
+        return False
+    return user
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({'exp': expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str = Depends(lambda: None)):
+    # placeholder; real dependency is below
+    raise HTTPException(status_code=400, detail='Not implemented')
+
+def log(level: str, message: str, meta: Optional[dict] = None):
+    with Session(engine) as s:
+        al = AuditLog(level=level, message=message, meta=json.dumps(meta) if meta else None)
+        s.add(al); s.commit()
+
+# Pydantic models
+class RegisterModel(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenModel(BaseModel):
+    access_token: str
+    token_type: str = 'bearer'
+    email: Optional[EmailStr] = None
+    consent: Optional[bool] = False
+
+# Dependency
+from fastapi.security import OAuth2PasswordBearer
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
+
+def get_user_from_token(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get('sub')
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+    with Session(engine) as s:
+        u = s.exec(select(User).where(User.email == email)).first()
+        if not u:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not found')
+        return u
+
+@app.post('/register', response_model=dict)
+def register(r: RegisterModel):
+    with Session(engine) as s:
+        existing = s.exec(select(User).where(User.email == r.email)).first()
+        if existing:
+            raise HTTPException(status_code=400, detail='User exists')
+        user = create_user(s, r.email, r.password)
+        return {'ok': True, 'email': user.email}
+
+@app.post('/token', response_model=TokenModel)
+def login_for_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    with Session(engine) as s:
+        user = authenticate_user(s, form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(status_code=400, detail='Incorrect username or password')
+        access_token = create_access_token({'sub': user.email})
+        return TokenModel(access_token=access_token, email=user.email, consent=user.consent)
+
+@app.post('/consent', response_model=dict)
+def set_consent(consent: dict, current_user: User = Depends(get_user_from_token)):
+    val = consent.get('consent', True)
+    with Session(engine) as s:
+        u = s.exec(select(User).where(User.email == current_user.email)).first()
+        u.consent = bool(val)
+        s.add(u); s.commit()
+    log('INFO', f'Consent updated for {current_user.email}', {'consent': u.consent})
+    return {'ok': True, 'consent': u.consent}
+
+@app.get('/me', response_model=dict)
+def me(current_user: User = Depends(get_user_from_token)):
+    return {'email': current_user.email, 'consent': current_user.consent}
+
+@app.post('/samples/upload')
+async def upload_sample(file: UploadFile = File(...), current_user: User = Depends(get_user_from_token)):
+    out = DATASETS_DIR / f"sample_{int(time.time())}_{file.filename}"
+    with open(out, 'wb') as f:
+        f.write(await file.read())
+    log('INFO', f'sample uploaded by {current_user.email}', {'file': out.name})
+    return {'ok': True, 'filename': out.name}
+
+@app.post('/datasets/upload')
+async def upload_dataset(file: UploadFile = File(...), background_tasks: BackgroundTasks = None, current_user: User = Depends(get_user_from_token)):
+    out = DATASETS_DIR / f"dataset_{int(time.time())}.zip"
+    with open(out, 'wb') as f:
+        f.write(await file.read())
+    log('INFO', f'dataset uploaded by {current_user.email}', {'file': out.name})
+    # background trigger optional: spawn training if available
+    background_tasks.add_task(trigger_train_internal, str(out))
+    return {'ok': True, 'filename': out.name}
+
+@app.post('/model/upload')
+async def upload_model(file: UploadFile = File(...), current_user: User = Depends(get_user_from_token)):
+    out = MODELS_DIR / f"{int(time.time())}_{file.filename}"
+    with open(out, 'wb') as f:
+        f.write(await file.read())
+    # register model record
+    with Session(engine) as s:
+        mr = ModelRecord(name=file.filename, path=str(out))
+        s.add(mr); s.commit(); s.refresh(mr)
+    # update latest.json
+    latest = {'name': file.filename, 'path': str(out), 'timestamp': int(time.time())}
+    with open(MODELS_DIR / 'latest.json', 'w') as lf:
+        json.dump(latest, lf)
+    log('INFO', f'model uploaded by {current_user.email}', {'file': out.name})
+    return {'ok': True, 'filename': out.name}
+
+@app.get('/models/{filename}')
+def get_model_file(filename: str):
+    p = MODELS_DIR / filename
+    if not p.exists():
+        raise HTTPException(status_code=404, detail='Not found')
+    return fastapi.responses.FileResponse(p)
+
+def trigger_train_internal(dataset_path: str):
+    # attempt to run training script if exists; else simulate creation of model file
+    try:
+        train_script = BASE_DIR / '..' / 'training' / 'train.py'
+        train_script = train_script.resolve()
+        if train_script.exists():
+            # run training in subprocess (may be heavy)
+            subprocess.Popen(['python', str(train_script), '--data', str(dataset_path)], cwd=str(train_script.parent))
+            log('INFO', 'spawned real training', {'dataset': dataset_path})
+        else:
+            # simulate: create dummy model file
+            ts = int(time.time())
+            name = f'model_{ts}.tflite'
+            p = MODELS_DIR / name
+            with open(p, 'wb') as f:
+                f.write(b'DUMMY TFLITE MODEL') 
+            with open(MODELS_DIR / 'latest.json', 'w') as lf:
+                json.dump({'name': name, 'path': str(p), 'timestamp': ts}, lf)
+            with Session(engine) as s:
+                mr = ModelRecord(name=name, path=str(p))
+                s.add(mr); s.commit()
+            log('INFO', 'simulated training produced model', {'model': name})
+    except Exception as e:
+        log('ERROR', f'training failed: {e}')
+
+@app.post('/trigger-train')
+def trigger_train(background_tasks: BackgroundTasks, current_user: User = Depends(get_user_from_token)):
+    background_tasks.add_task(trigger_train_internal, 'manual_trigger')
+    return {'ok': True, 'message': 'training started'}
+
+@app.get('/models/latest.json')
+def latest_model():
+    p = MODELS_DIR / 'latest.json'
+    if p.exists():
+        return fastapi.responses.FileResponse(p, media_type='application/json')
+    return {'name': None}, 404
+
+@app.post('/delete-account')
+def delete_account(current_user: User = Depends(get_user_from_token)):
+    with Session(engine) as s:
+        s.exec(select(User).where(User.email == current_user.email)).first()
+        s.delete(current_user)
+        s.commit()
+    log('INFO', f'account deleted {current_user.email}')
+    return {'ok': True}
+
+# simple health
+@app.get('/health')
+def health():
+    return {'status': 'ok'}
+
+
+# Assistant-added PRO prediction endpoints
+from fastapi import Query
+from .ai.hybrid_predictor import hybrid_predict
+
+@app.get('/rounds/history')
+def rounds_history(limit: int = Query(50, ge=1, le=200)):
+    # read from server/training_data.csv if exists, otherwise return empty
+    DATA_FILE = os.path.join(os.path.dirname(__file__), 'training_data.csv')
+    hist = []
+    if os.path.exists(DATA_FILE):
+        import csv
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in list(reader)[-limit:]:
+                try:
+                    # features_json may contain 'multiplier' or raw multiplier
+                    features = json.loads(row.get('features_json','{}'))
+                    m = features.get('multiplier') or features.get('mult') or None
+                    if m is not None:
+                        hist.append(int(m))
+                    else:
+                        # fallback: try label
+                        lab = row.get('label')
+                        if lab and lab!='':
+                            hist.append(int(lab))
+                except Exception:
+                    continue
+    return {'history': hist}
+
+@app.get('/prediction/pro')
+def prediction_pro(limit: int = Query(50, ge=1, le=200), minute: int = Query(None)):
+    # collect history and run hybrid predictor
+    rh = rounds_history(limit=limit)
+    hist = rh.get('history', [])
+    pred = hybrid_predict(hist, minute=minute)
+    return pred
+
+
+# --- Assistant-added endpoints (analyze, collect-training, trigger-retrain, download-model, rounds/history, prediction/pro)
+from fastapi import UploadFile, File, Request, HTTPException, Query
+from fastapi.responses import FileResponse, JSONResponse
+import os, csv, json, time, threading, subprocess
+BASE_DIR = os.path.dirname(__file__)
+TRAINING_CSV = os.path.join(BASE_DIR, 'training_data.csv')
+MODEL_FILE = os.path.join(BASE_DIR, 'model.tflite')
+ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', 'admin-secret')
+
+def append_example_row(example):
+    os.makedirs(os.path.dirname(TRAINING_CSV), exist_ok=True)
+    write_header = not os.path.exists(TRAINING_CSV)
+    with open(TRAINING_CSV, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if write_header:
+            writer.writerow(['timestamp','features_json','label','source'])
+        writer.writerow([example.get('timestamp',''), json.dumps(example.get('features',{})), example.get('label',''), example.get('source','client')])
+
+@app.post('/collect-training')
+async def collect_training(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse({'ok': False, 'error': 'invalid json'}, status_code=400)
+    examples = data if isinstance(data, list) else [data]
+    for ex in examples:
+        append_example_row(ex)
+    return {'ok': True, 'received': len(examples)}
+
+@app.post('/analyze-screenshot')
+async def analyze_screenshot(file: UploadFile = File(...)):
+    tmpdir = os.path.join(BASE_DIR, 'tmp')
+    os.makedirs(tmpdir, exist_ok=True)
+    filename = f"{int(time.time()*1000)}_{file.filename}"
+    outpath = os.path.join(tmpdir, filename)
+    with open(outpath, 'wb') as f:
+        f.write(await file.read())
+    # Try OCR if pytesseract is available
+    parsed = {'ok': True, 'raw_file': os.path.basename(outpath)}
+    try:
+        from PIL import Image
+        try:
+            import pytesseract
+            img = Image.open(outpath)
+            text = pytesseract.image_to_string(img)
+            parsed['raw_text'] = text
+        except Exception as e:
+            parsed['ocr_error'] = str(e)
+    except Exception as e:
+        parsed['ocr_error'] = 'PIL not available: ' + str(e)
+    # Return placeholder structured response with expected keys
+    response = {
+        "ok": True,
+        "round_no": None,
+        "minute": None,
+        "bets": [],
+        "multipliers": [],
+        "history": [],
+        "raw_parsed": parsed
+    }
+    return response
+
+@app.post('/trigger-retrain')
+async def trigger_retrain(request: Request):
+    token = request.headers.get('X-Admin-Token') or request.query_params.get('admin_token')
+    if token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail='forbidden')
+    def run_trainer():
+        try:
+            trainer_py = os.path.abspath(os.path.join(BASE_DIR, '..', 'training', 'train_tflite.py'))
+            if os.path.exists(trainer_py):
+                subprocess.run(['python', trainer_py, '--out', MODEL_FILE], check=True)
+        except Exception as e:
+            print('trainer error', e)
+    threading.Thread(target=run_trainer, daemon=True).start()
+    return {'ok': True, 'status': 'retrain_started'}
+
+@app.get('/download-model')
+def download_model():
+    if os.path.exists(MODEL_FILE):
+        return FileResponse(MODEL_FILE, media_type='application/octet-stream', filename='model.tflite')
+    raise HTTPException(status_code=404, detail='Model not available')
+
+# rounds history & prediction are expected elsewhere (hybrid predictor integration)

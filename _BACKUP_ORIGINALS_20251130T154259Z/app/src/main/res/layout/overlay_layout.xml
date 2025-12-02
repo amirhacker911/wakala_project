@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" android:padding="8dp"
+    android:layout_width="wrap_content" android:layout_height="wrap_content"
+    android:background="@color/surface">
+    <TextView android:id="@+id/overlay_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="فخر" android:textColor="@color/gold_primary" android:padding="6dp"/>
+</LinearLayout>

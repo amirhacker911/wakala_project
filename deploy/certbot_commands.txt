@@ -1,0 +1,4 @@
+# After installing nginx and adding nginx_sample.conf (update server_name), run:
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d example.com
+# Follow prompts to issue certificate

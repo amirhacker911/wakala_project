@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sqlmodel
+passlib
+pyjwt
+scikit-learn
+joblib
+numpy

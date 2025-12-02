@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+numpy
+pydantic
+python-multipart
+# tensorflow commented out by default to keep install light.
+# if you need full TF add: tensorflow==2.12.0
+
+sqlmodel
+python-jose
+passlib[bcrypt]

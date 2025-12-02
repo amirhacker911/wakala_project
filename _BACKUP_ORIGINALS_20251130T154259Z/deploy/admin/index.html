@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Wakala Admin</title></head>
+<body style="font-family: Arial, sans-serif; background:#111; color:#eee; padding:20px;">
+<h1>Wakala Admin Dashboard (Prototype)</h1>
+<div>
+  <label>API Base URL: <input id="base" value="http://localhost:8000" style="width:300px"></label>
+  <label>Token: <input id="token" style="width:400px"></label>
+  <button onclick="loadUsers()">Load Users</button>
+  <button onclick="loadModels()">Load Models</button>
+  <button onclick="loadLogs()">Load Logs</button>
+</div>
+<pre id="out" style="background:#000; padding:10px; border:1px solid #333; height:400px; overflow:auto;"></pre>
+<script>
+async function api(path, method='GET', body=null){
+  const base = document.getElementById('base').value;
+  const token = document.getElementById('token').value;
+  const headers = {'Authorization':'Bearer '+token};
+  if(body && !(body instanceof FormData)) headers['Content-Type']='application/json';
+  const resp = await fetch(base+path, {method, headers, body: body && !(body instanceof FormData) ? JSON.stringify(body) : body});
+  const txt = await resp.text();
+  document.getElementById('out').textContent = path + "\n" + txt;
+}
+function loadUsers(){ api('/admin/users') }
+function loadModels(){ api('/admin/models') }
+function loadLogs(){ api('/admin/logs?limit=200') }
+</script>
+</body>
+</html>

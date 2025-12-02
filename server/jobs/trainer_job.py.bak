@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+import os, json, time, traceback, math
+from server.db import get_all_samples, update_sample_label
+from server.ai_service.features import vectorize, VECTOR_LEN
+from server.db_extensions import add_model_stat, add_training_job, finish_training_job, add_game_history
+OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'ai_service', 'tflite_models')
+os.makedirs(OUT_DIR, exist_ok=True)
+
+def compute_time_signature(samples):
+    # compute frequency of multiplier==100 by minute (0-59) and second (0-59) if timestamp available
+    minute_counts = [0]*60
+    total_counts = [0]*60
+    for s in samples:
+        try:
+            meta = json.loads(s.metadata) if s.metadata else {}
+            ts = meta.get('timestamp')
+            feats = json.loads(s.features)
+            mults = feats.get('multipliers', [])
+            if ts and mults:
+                t = time.gmtime(float(ts))
+                minute = t.tm_min
+                second = t.tm_sec
+                total_counts[minute] += 1
+                # if any multiplier==100, count
+                if any(int(m)==100 for m in mults):
+                    minute_counts[minute] += 1
+        except Exception:
+            continue
+    heat = [ (minute_counts[i]/(total_counts[i] or 1)) for i in range(60) ]
+    return heat
+
+def run_training_cycle():
+    samples = get_all_samples(limit=5000)
+    X, y = [], []
+    labeled = 0
+    for s in samples:
+        try:
+            feats = json.loads(s.features)
+            if not s.label:
+                continue
+            vec = feats.get('feature_vector')
+            if not vec:
+                vec = vectorize(feats)
+            X.append(vec)
+            y.append(int(s.label))
+            labeled += 1
+            # store history for analytics
+            try:
+                meta = json.loads(s.metadata) if s.metadata else {}
+                add_game_history(meta.get('round_id'), meta.get('timestamp'), s.label, feats)
+            except:
+    return None  # AUTO_REPLACED_PASS
+        except Exception:
+            continue
+    if labeled < 20:
+        print('Not enough labeled samples to train. labeled=', labeled)
+        return False
+    job_id = add_training_job(time.time(), status='running')
+    try:
+        # attempt TF training
+        import numpy as np
+        try:
+            import tensorflow as tf
+            X = np.array(X, dtype=np.float32)
+            y = np.array(y, dtype=np.int32)
+            model = tf.keras.Sequential([
+                tf.keras.layers.Input(shape=(len(X[0]),)),
+                tf.keras.layers.Dense(256, activation='relu'),
+                tf.keras.layers.Dense(128, activation='relu'),
+                tf.keras.layers.Dense(len(set(y)), activation='softmax')
+            ])
+            model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+            model.fit(X, y, epochs=12, batch_size=32, verbose=1)
+            h5 = os.path.join(OUT_DIR, 'model.h5')
+            model.save(h5)
+            try:
+                converter = tf.lite.TFLiteConverter.from_keras_model(model)
+                converter.optimizations = [tf.lite.Optimize.DEFAULT]
+                tflite_model = converter.convert()
+                with open(os.path.join(OUT_DIR, 'model.tflite'), 'wb') as fh:
+                    fh.write(tflite_model)
+            except Exception as e:
+                print('TFLite conversion failed:', e)
+            # compute metrics (basic)
+            loss, acc = model.evaluate(X, y, verbose=0)
+            metrics = {'loss': float(loss), 'accuracy': float(acc)}
+            add_model_stat('v'+str(int(time.time())), len(X), metrics)
+            finish_training_job(job_id, status='done', details='trained with tensorflow')
+            # compute time signature and save
+            heat = compute_time_signature(samples)
+            with open(os.path.join(OUT_DIR, 'time_signature.json'), 'w', encoding='utf-8') as fh:
+                json.dump({'minute_heat': heat, 'created': time.time()}, fh)
+            return True
+        except Exception as e:
+            print('TF not available, fallback to RF', e)
+            from sklearn.ensemble import RandomForestClassifier
+            import joblib
+            clf = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=1)
+            clf.fit(X, y)
+            joblib.dump({'model': clf}, os.path.join(OUT_DIR, 'model_rf.joblib'))
+            add_model_stat('rf_'+str(int(time.time())), len(X), {'note':'rf_fallback'})
+            finish_training_job(job_id, status='done', details='trained with rf fallback')
+            heat = compute_time_signature(samples)
+            with open(os.path.join(OUT_DIR, 'time_signature.json'), 'w', encoding='utf-8') as fh:
+                json.dump({'minute_heat': heat, 'created': time.time()}, fh)
+            return True
+    except Exception as e:
+        finish_training_job(job_id, status='failed', details=str(e))
+        print('Training error', traceback.format_exc())
+        return False
+
+if __name__ == '__main__':
+    run_training_cycle()

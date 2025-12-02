@@ -1,0 +1,98 @@
+{
+  "summary": {
+    "total_files": 100,
+    "total_dirs": 26
+  },
+  "details": [
+    {
+      "server_api": "/mnt/data/project_final_inspect/server/app_fastapi.py",
+      "checks": {
+        "has_analyze": false,
+        "has_collect": false,
+        "has_trigger_retrain": false,
+        "has_download_model": false,
+        "has_prediction_pro": true
+      }
+    },
+    {
+      "server_requirements": "/mnt/data/project_final_inspect/server/requirements.txt",
+      "content_snippet": "fastapi==0.95.2\nuvicorn[standard]==0.22.0\npython-multipart==0.0.6\nsqlmodel==0.0.8\npsycopg2-binary==2.9.10\npasslib[bcrypt]==1.7.4\npython-jose==3.3.0\npython-dotenv==1.0.0\n"
+    },
+    {
+      "app_manifest": "/mnt/data/project_final_inspect/app/src/main/AndroidManifest.xml",
+      "permissions": {
+        "overlay": false,
+        "foreground_service": true,
+        "internet": true
+      }
+    },
+    {
+      "placeholder_findings": [
+        {
+          "file": "/mnt/data/project_final_inspect/manual_audit_report.json",
+          "token": "PLACEHOLDER_FOUND_REVIEW"
+        },
+        {
+          "file": "/mnt/data/project_final_inspect/manual_audit_report.json",
+          "token": "TODO_FOUND_REVIEW"
+        },
+        {
+          "file": "/mnt/data/project_final_inspect/manual_audit_report.json",
+          "token": "FIXME_FOUND_REVIEW"
+        },
+        {
+          "file": "/mnt/data/project_final_inspect/README_PATCH_NOTES.txt",
+          "token": "PLACEHOLDER_FOUND_REVIEW"
+        },
+        {
+          "file": "/mnt/data/project_final_inspect/README_PATCH_NOTES.txt",
+          "token": "TODO_FOUND_REVIEW"
+        },
+        {
+          "file": "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ImageAnalyzer.kt",
+          "token": "TODO_FOUND_REVIEW"
+        }
+      ]
+    },
+    {
+      "training_files": [
+        "training/generate_synthetic.py",
+        "training/train.py",
+        "training/convert_to_tflite.py",
+        "training/COLAB_INSTRUCTIONS.md"
+      ]
+    },
+    {
+      "app_ai_files_sample": [
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/PatternScanner.kt",
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/TimeBasedPatternAI.kt",
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/BetVolumeAnalyzer.kt",
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/TrapDetector.kt",
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/PatternEngineClient.kt",
+        "/mnt/data/project_final_inspect/app/src/main/java/com/wakala/fakhr/ai/HybridPredictor.kt",
+        "/mnt/data/project_final_inspect/server/ai/sequence_detector.py",
+        "/mnt/data/project_final_inspect/server/ai/markov_model.py",
+        "/mnt/data/project_final_inspect/server/ai/frequency_model.py",
+        "/mnt/data/project_final_inspect/server/ai/time_pattern_engine.py",
+        "/mnt/data/project_final_inspect/server/ai/hybrid_predictor.py"
+      ]
+    },
+    {
+      "docker_compose": "present"
+    },
+    {
+      "size_bytes": {
+        "app": 120564,
+        "server": 38076,
+        "training": 5322
+      }
+    }
+  ],
+  "issues": [],
+  "suggestions": [
+    "Add pytesseract/easyocr and pillow to server/requirements.txt for OCR support.",
+    "Ensure SYSTEM_ALERT_WINDOW or request ACTION_MANAGE_OVERLAY_PERMISSION at runtime for overlay functionality.",
+    "app/src/main/assets/models directory not found - create it and place model.tflite inside."
+  ],
+  "files_scanned": 100
+}

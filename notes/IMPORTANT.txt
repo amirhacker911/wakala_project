@@ -1,0 +1,4 @@
+IMPORTANT:
+- Replace placeholders in files (REPLACE_WITH_API_URL_OR_IP, replace_with_a_strong_random_string, etc.) before deployment.
+- These helper files do NOT overwrite your server code; they are integration/config helpers.
+- If any AI entrypoint has a different port or name, update AI_SERVICE_URL in server/.env accordingly.

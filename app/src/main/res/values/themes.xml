@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Wakala" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/black_primary</item>
+        <item name="colorPrimaryVariant">@color/black_secondary</item>
+        <item name="colorOnPrimary">@color/gold_primary</item>
+        <item name="colorSecondary">@color/gold_primary</item>
+        <item name="android:statusBarColor">@color/black_primary</item>
+        <item name="android:windowBackground">@color/black_primary</item>
+        <item name="android:navigationBarColor">@color/black_primary</item>
+        <item name="materialButtonStyle">@style/Widget.Wakala.Button</item>
+    </style>
+
+    <style name="Widget.Wakala.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:backgroundTint">@color/gold_primary</item>
+        <item name="android:textColor">@color/black_primary</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="android:padding">12dp</item>
+    </style>
+</resources>

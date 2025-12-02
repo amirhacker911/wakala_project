@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.wakala.fakhr">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <application
+        android:allowBackup="true"
+        android:label="وكالة فخر العرب"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.Wakala">
+        <activity android:name=".SplashActivity" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".LoginActivity" android:exported="false" />
+        <activity android:name=".MainActivity" android:exported="false" />
+        <service android:name=".OverlayService" android:exported="false" />
+        <service android:name=".AutoAnalyzerService" android:exported="false" />
+        <service android:name="com.wakala.fakhr.AutoAnalyzerService" android:exported="false" />
+    <service android:name="com.wakala.fakhr.OverlayService" android:exported="false" />
+    <service android:name="com.wakala.fakhr.OverlayReceiverService" android:exported="false" />\n    <activity android:name="com.wakala.fakhr.DataLabelActivity" android:exported="false" />\n    <receiver android:name="com.wakala.fakhr.BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+<service android:name="com.wakala.fakhr.AutoRoundWatcher" android:exported="false" />
+<receiver android:name="com.wakala.fakhr.AutoAnalyzeReceiver" android:exported="false">
+    <intent-filter>
+        <action android:name="com.wakala.fakhr.ACTION_AUTO_ANALYZE" />
+    </intent-filter>
+</receiver>
+
+    </application>
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+</manifest>

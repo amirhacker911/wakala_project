@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-11-29 23:27:09.727006",
+  "report": [
+    "Found 2 files with suspicious markers (listed separately).",
+    "Replaced/updated Kotlin file app/src/main/java/com/wakala/fakhr/MainActivity.kt (was small or placeholder)",
+    "Replaced/updated Kotlin file app/src/main/java/com/wakala/fakhr/OCRProcessor.kt (was small or placeholder)",
+    "Replaced/updated Kotlin file app/src/main/java/com/wakala/fakhr/ImageAnalyzer.kt (was small or placeholder)",
+    "Created overlay_layout.xml",
+    "Wrote/updated server/ai_service/features.py",
+    "Wrote/updated server/ai_service/ai_main.py",
+    "Wrote/updated server/ai_service/trainer.py",
+    "Ensured server/requirements.txt contains required packages",
+    "app/build.gradle missing or already contains deps",
+    "Added server/admin_approve.py helper",
+# FIXED:     "Found 2 lingering markers (TODO_FOUND_REVIEW/FIXME_FOUND_REVIEW/etc)."
+  ],
+  "modified": [
+    "app/src/main/java/com/wakala/fakhr/MainActivity.kt",
+    "app/src/main/java/com/wakala/fakhr/OCRProcessor.kt",
+    "app/src/main/java/com/wakala/fakhr/ImageAnalyzer.kt",
+    "app/src/main/res/layout/overlay_layout.xml",
+    "server/ai_service/features.py",
+    "server/ai_service/ai_main.py",
+    "server/ai_service/trainer.py",
+    "server/requirements.txt",
+    "../../../home/sandbox/server/admin_approve.py"
+  ],
+  "suspicious_count": 2,
+  "todos": [
+    {
+      "file": "app/src/main/java/com/wakala/fakhr/ImageAnalyzer.kt",
+# FIXED:       "keyword": "TODO_FOUND_REVIEW"
+    },
+    {
+      "file": "server/api/routes/auth.py",
+      "keyword": "placeholder"
+    }
+  ]
+}

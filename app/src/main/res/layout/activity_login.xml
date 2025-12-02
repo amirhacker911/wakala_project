@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:padding="24dp" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+    <ImageView android:id="@+id/logo" android:layout_width="120dp" android:layout_height="120dp" android:layout_gravity="center" android:src="@drawable/ic_launcher_foreground" android:contentDescription="logo"/>
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="وكالة فخر العرب" android:textSize="22sp" android:textStyle="bold" android:textColor="#FFD700" android:gravity="center" android:layout_marginTop="8dp"/>
+    <EditText android:id="@+id/edt_email" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="البريد الإلكتروني" android:inputType="textEmailAddress" android:layout_marginTop="20dp" android:backgroundTint="#FFFFFF" android:textColor="#FFFFFF"/>
+    <EditText android:id="@+id/edt_password" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="كلمة المرور" android:inputType="textPassword" android:layout_marginTop="8dp" android:backgroundTint="#FFFFFF" android:textColor="#FFFFFF"/>
+    <Button android:id="@+id/btn_login" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تسجيل الدخول" android:layout_marginTop="12dp" android:background="#D4AF37" android:textColor="#000000"/>
+    <Button android:id="@+id/btn_register" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="تسجيل حساب" android:layout_marginTop="8dp" android:background="#C0C0C0" android:textColor="#000000"/>
+</LinearLayout>

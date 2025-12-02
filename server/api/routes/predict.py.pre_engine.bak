@@ -1,0 +1,45 @@
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import JSONResponse
+from ..utils.load_model import ModelWrapper
+
+router = APIRouter()
+model_wrapper = ModelWrapper()
+
+@router.post('/predict')
+async def predict(request: Request):
+    # try form file first
+    try:
+        form = await request.form()
+        if 'file' in form:
+            file = form['file']
+            content = await file.read()
+            result = model_wrapper.predict_from_bytes(content)
+            return JSONResponse({'success': True, 'result': result})
+    except Exception:
+        pass
+
+    # otherwise JSON body
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail='Invalid JSON or no file uploaded')
+
+    
+    # Unified processing: integrate multipliers/time into input
+    features = data.get('features', data.get('input', {}))
+    multipliers = data.get('multipliers') or features.get('multipliers')
+    game_time = data.get('time') or features.get('time')
+    if multipliers:
+        features['multipliers'] = multipliers
+    if game_time:
+        features['time'] = game_time
+    data['input'] = features
+    if 'input' not in data:
+        raise HTTPException(status_code=400, detail="Provide 'input' field matching model input format")
+
+    try:
+        result = model_wrapper.predict(data['input'])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Prediction error: {e}')
+
+    return JSONResponse({'success': True, 'result': result})

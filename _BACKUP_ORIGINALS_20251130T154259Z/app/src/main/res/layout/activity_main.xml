@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="24dp">
+
+    <Button
+        android:id="@+id/btn_request_capture"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Request Screen Capture (one-time)"/>
+
+    <Button
+        android:id="@+id/btn_start_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Floating Button Overlay"
+        android:layout_marginTop="16dp"/>
+    <Button android:id="@+id/btn_label_dataset" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Label Dataset" android:layout_marginTop="12dp"/>
+    <Button android:id="@+id/btn_upload_dataset" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Zip & Upload Dataset" android:layout_marginTop="8dp"/>
+</LinearLayout>

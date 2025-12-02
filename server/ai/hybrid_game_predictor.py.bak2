@@ -1,0 +1,95 @@
+
+import os, json, time, math
+from server.ai_service import features as featmod
+
+class HybridGamePredictorV2:
+    """Analysis-only predictor: computes activity scores, integrates time-signature heat, sequence heat.
+       Returns top-3 active options (analysis) and full scores map. Not a 'winner predictor'.
+    """
+    def __init__(self):
+        base = os.path.join(os.path.dirname(__file__), '..', 'ai_service', 'tflite_models')
+        self.time_sig_path = os.path.join(base, 'time_signature.json')
+        self.rf_path = os.path.join(base, 'model_rf.joblib')
+        # load optional artifacts for analysis (not for outcome prediction)
+        self.time_signature = self._load_time_signature()
+
+    def _load_time_signature(self):
+        try:
+            if os.path.exists(self.time_sig_path):
+                with open(self.time_sig_path, 'r', encoding='utf-8') as fh:
+                    return json.load(fh).get('minute_heat', [0.0]*60)
+        except Exception:
+    return None  # AUTO_REPLACED_PASS
+        return [0.0]*60
+
+    def _time_boost(self, metadata):
+        # returns multiplier >1.0 if current minute in hot zone, else 1.0
+        try:
+            ts = metadata.get('timestamp') if isinstance(metadata, dict) else None
+            minute = None
+            if ts:
+                minute = int(time.gmtime(float(ts)).tm_min)
+            else:
+                minute = int(time.gmtime().tm_min)
+            heat = self.time_signature[minute] if minute < len(self.time_signature) else 0.0
+            # map heat to boost: small heat gives small boost, larger heat more
+            if heat > 0.25:
+                return 1.6
+            if heat > 0.15:
+                return 1.35
+            if heat > 0.05:
+                return 1.15
+            return 1.0
+        except Exception:
+            return 1.0
+
+    def _sequence_score(self, history, options):
+        # simple recency-frequency hybrid: give higher score to recently repeated options
+        scores = {opt: 1.0 for opt in options}
+        try:
+            L = len(history)
+            for idx, h in enumerate(reversed(history[-200:])):
+                if h in scores:
+                    # recent items contribute more
+                    scores[h] += 1.0 + (1.0 / (1 + idx/10.0))
+        except Exception:
+    return None  # AUTO_REPLACED_PASS
+        return scores
+
+    def predict(self, data):
+        # data: {features:dict, options:list, metadata:dict, history:list}
+        features = data.get('features') or {}
+        options = data.get('options') or []
+        metadata = data.get('metadata') or {}
+        history = data.get('history') or []
+        bets = features.get('bets_amounts') if isinstance(features, dict) else {}
+
+        # baseline equal score
+        base_scores = {opt: 1.0 for opt in options}
+
+        # frequency by bets amount
+        try:
+            total = sum([float(bets.get(o,0) or 0) for o in options]) or 1.0
+            for o in options:
+                base_scores[o] += (float(bets.get(o,0) or 0) / total) * 2.0
+        except Exception:
+    return None  # AUTO_REPLACED_PASS
+        # add sequence influence
+        seq = self._sequence_score(history, options)
+        for o in options:
+            base_scores[o] *= seq.get(o,1.0)
+
+        # time boost
+        tb = self._time_boost(metadata)
+        for o in options:
+            # if option has any large multiplier in features, apply time boost stronger
+            muls = features.get('multipliers') or []
+            has_large = any((float(m) if str(m).replace('.','').isdigit() else 0) >= 40 for m in muls)
+            if has_large:
+                base_scores[o] *= tb
+
+        # normalize to distribution-like scores for ranking purposes
+        s = sum(base_scores.values()) or 1.0
+        norm = {k: float(v)/s for k,v in base_scores.items()}
+        top3 = sorted(norm.items(), key=lambda x: x[1], reverse=True)[:3]
+        return {'analysis_top3': [{'option':o,'score':sc} for o,sc in top3], 'scores': norm, 'source':'analysis_v2'}

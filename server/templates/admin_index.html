@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"><title>Admin - وكالة فخر العرب</title></head>
+  <body style="font-family: Arial, sans-serif; background:#1b1b1b; color:#fff; padding:20px;">
+    <h1>لوحة التحكم - وكالة فخر العرب</h1>
+    <p><a href="/admin/model_info">Model info (JSON)</a> | <a href="/admin/download_model">Download TFLite model</a></p>
+    <h2>Recent Samples (last 100)</h2>
+    <table border="1" cellpadding="6" style="background:#222; color:#fff; width:100%;">
+      <tr><th>ID</th><th>Timestamp</th><th>Round</th><th>Options</th><th>Total Bets</th><th>Label</th></tr>
+      {% for s in samples[-100:] %}
+      <tr>
+        <td>{{ s.id }}</td>
+        <td>{{ s.metadata and (s.metadata | tojson) or '' }}</td>
+        <td>{% if s.metadata %}{{ (s.metadata | fromjson).get('round_id','') }}{% endif %}</td>
+        <td style="max-width:400px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ s.features }}</td>
+        <td>
+          {% if s.features %}
+            {% set f = s.features | safe %}
+            {{ 'see features' }}
+          {% endif %}
+        </td>
+        <td>{{ s.label }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>

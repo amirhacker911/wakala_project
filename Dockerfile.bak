@@ -1,0 +1,7 @@
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY server/ ./server/
+RUN pip install --no-cache-dir uvicorn fastapi sqlmodel passlib scikit-learn joblib
+EXPOSE 8000
+CMD ["uvicorn","server.api.main:app","--host","0.0.0.0","--port","8000"]

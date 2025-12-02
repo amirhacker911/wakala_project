@@ -1,0 +1,20 @@
+
+<!doctype html><html><head><meta charset="utf-8"><title>Admin Heatmap - وكالة فخر العرب</title>
+<style>body{background:#0b0b0b;color:#fff;font-family:Arial;padding:20px} .bar{height:18px;background:#f0c040;margin:4px 0;border-radius:6px}</style>
+</head><body>
+<h1>Heatmap - Time Signature (minute 0..59)</h1>
+<div id="heat"></div>
+<script>
+fetch('/admin_stats/time_signature').then(r=>r.json()).then(j=>{
+  const arr=j.minute_heat||j||[];
+  const container=document.getElementById('heat');
+  for(let i=0;i<60;i++){
+    const v=arr[i]||0;
+    const bar=document.createElement('div');
+    bar.className='bar'; bar.style.width=(Math.min(100, v*400))+'px';
+    bar.textContent='Minute '+i+'  ('+ (Math.round(v*1000)/10) + '%)';
+    container.appendChild(bar);
+  }
+});
+</script>
+</body></html>

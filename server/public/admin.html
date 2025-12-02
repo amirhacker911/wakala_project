@@ -1,0 +1,104 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Wakala Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:20px}
+    .card{padding:12px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.08);margin-bottom:12px}
+    label{display:block;margin-top:8px}
+    input, textarea, select{width:100%;padding:8px;margin-top:6px;border:1px solid #ddd;border-radius:6px}
+    button{padding:8px 12px;border-radius:6px;border:0;background:#0b76ef;color:#fff;cursor:pointer}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+  </style>
+</head>
+<body>
+  <h2>Wakala — Admin Panel</h2>
+  <div class="card">
+    <h3>Settings</h3>
+    <label>Multipliers (comma separated)</label>
+    <input id="multipliers" placeholder="3,5,8,12,15,20,50,100" />
+    <label>Win Hour (0-23) or blank</label>
+    <input id="win_hour" type="number" min="0" max="23" />
+    <label>Win Minute (0-59) or blank</label>
+    <input id="win_minute" type="number" min="0" max="59" />
+    <div style="margin-top:8px">
+      <button onclick="saveSettings()">Save Settings</button>
+      <button onclick="loadSettings()">Load Settings</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Simulation</h3>
+    <label>Rounds</label>
+    <input id="sim_rounds" type="number" value="50" />
+    <label>Amount</label>
+    <input id="sim_amount" type="number" value="10" />
+    <div style="margin-top:8px">
+      <button onclick="runSim()">Run Simulation</button>
+    </div>
+    <div id="sim_result"></div>
+  </div>
+
+  <div class="card">
+    <h3>Test Predict</h3>
+    <label>JSON Input</label>
+    <textarea id="test_input" rows="6">{ "amount": 10, "round": 1, "multipliers": [3,5,8,12,15,20,50,100], "options": ["0","1","2","3","4","5","6","7"], "use_game_engine": true }</textarea>
+    <div style="margin-top:8px">
+      <button onclick="testPredict()">Run Predict</button>
+    </div>
+    <pre id="test_output"></pre>
+  </div>
+
+<script>
+const API = '/api';
+
+async function loadSettings(){
+  const r = await fetch(API + '/game/settings');
+  const j = await r.json();
+  if(j.success && j.settings){
+    document.getElementById('multipliers').value = (j.settings.multipliers || []).join(',');
+    document.getElementById('win_hour').value = j.settings.win_hour || '';
+    document.getElementById('win_minute').value = j.settings.win_minute || '';
+    alert('Settings loaded');
+  } else alert('Failed to load settings');
+}
+
+async function saveSettings(){
+  const m = document.getElementById('multipliers').value.split(',').map(x=>parseFloat(x.trim())).filter(x=>!isNaN(x));
+  const h = document.getElementById('win_hour').value;
+  const mi = document.getElementById('win_minute').value;
+  const payload = { multipliers: m, win_hour: h===''?null:parseInt(h), win_minute: mi===''?null:parseInt(mi) };
+  const r = await fetch(API + '/game/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+  const j = await r.json();
+  if(j.success) alert('Saved');
+  else alert('Save failed');
+}
+
+async function runSim(){
+  const rounds = parseInt(document.getElementById('sim_rounds').value) || 50;
+  const amount = parseFloat(document.getElementById('sim_amount').value) || 10;
+  const input = { rounds: rounds, input: { amount: amount } };
+  const r = await fetch(API + '/game/simulate', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(input)});
+  const j = await r.json();
+  document.getElementById('sim_result').innerText = JSON.stringify(j, null, 2);
+}
+
+async function testPredict(){
+  const txt = document.getElementById('test_input').value;
+  try{
+    const obj = JSON.parse(txt);
+    const r = await fetch(API + '/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)});
+    const j = await r.json();
+    document.getElementById('test_output').innerText = JSON.stringify(j, null, 2);
+  }catch(e){ alert('Invalid JSON: '+e) }
+}
+
+// load on start
+loadSettings();
+</script>
+</body>
+</html>

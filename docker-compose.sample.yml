@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  api:
+    build: ./server
+    ports:
+      - '8000:8000'
+    environment:
+      - API_KEY=${API_KEY}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    volumes:
+      - ./server/api:/app/api
+      - ./server/ai_service:/app/ai_service

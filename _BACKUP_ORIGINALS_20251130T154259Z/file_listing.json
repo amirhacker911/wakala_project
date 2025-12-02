@@ -1,0 +1,97 @@
+[
+  {
+    "path": "README.md",
+    "size": 126,
+    "sample": "\n\n# UI Overhaul\nApp uses a black+gold theme, Material components, adaptive launcher icon, and polished layouts in res/layout.\n"
+  },
+  {
+    "path": "docker-compose.sample.yml",
+    "size": 257,
+    "sample": "version: '3.8'\nservices:\n  api:\n    build: ./server\n    ports:\n      - '8000:8000'\n    environment:\n      - API_KEY=${API_KEY}\n      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}\n    volumes:\n      - ./server/api:/app/api\n      - ./server/ai_service:/app/ai_service\n"
+  },
+  {
+    "path": ".github/workflows/ci.yml",
+    "size": 546,
+    "sample": "name: CI\n\non:\n  push:\n    branches: [ main ]\n  pull_request:\n    branches: [ main ]\n\njobs:\n  server-tests:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Set up Python\n        uses: actions/setup-python@v4\n        with:\n          python-version: '3.11'\n      - name: Install dependencies\n        run: |\n          cd server\n          python -m pip install --upgrade pip\n          pip install -r requirements.txt\n      - name: Run tests (if any)\n        run: |\n          cd server\n          pytest -q || true\n"
+  },
+  {
+    "path": "app/src/main/AndroidManifest.xml",
+    "size": 1307,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    package=\"com.wakala.fakhr\">\n\n    <uses-permission android:name=\"android.permission.INTERNET\" />\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\" />\n    <uses-permission android:name=\"android.permission.CAMERA\" />\n    <uses-permission android:name=\"android.permission.RECORD_AUDIO\" />\n\n    <application\n        android:allowBackup=\"true\"\n        android:label=\"وكالة فخر العرب\"\n        android:icon=\"@mipmap/ic_launcher\"\n        android:roundIcon=\"@mipmap/ic_launcher_round\"\n        android:theme=\"@style/Theme.Wakala\">\n        <activity android:name=\".SplashActivity\" android:exported=\"true\" >\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity>\n        <activity android:name=\".LoginActivity"
+  },
+  {
+    "path": "app/src/main/java/com/wakala/fakhr/ScreenCapture.kt",
+    "size": 2884,
+    "sample": "package com.wakala.fakhr\n\nimport android.app.Activity\nimport android.content.Context\nimport android.content.Intent\nimport android.graphics.Bitmap\nimport android.graphics.ImageFormat\nimport android.media.ImageReader\nimport android.media.projection.MediaProjection\nimport android.media.projection.MediaProjectionManager\nimport android.os.Handler\nimport android.os.Looper\nimport android.util.DisplayMetrics\nimport android.view.WindowManager\nimport java.nio.ByteBuffer\n\nclass ScreenCapture(private val activity: Activity) {\n    companion object {\n        const val REQUEST_CODE_CAPTURE = 0x1234\n    }\n\n    private var projection: MediaProjection? = null\n    private var reader: ImageReader? = null\n\n    fun requestPermission() {\n        val mgr = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager\n        val intent = mgr.createScreenCaptureIntent()\n        activity.startActivityForResult(intent, REQUEST_CODE_CAPTURE)\n    }\n\n    fun obtainProjection(resultCode: Int,"
+  },
+  {
+    "path": "app/src/main/java/com/wakala/fakhr/MainActivity.kt",
+    "size": 5950,
+    "sample": "package com.wakala.fakhr\n\nimport android.Manifest\nimport android.app.Activity\nimport android.content.Intent\nimport android.content.pm.PackageManager\nimport android.graphics.Bitmap\nimport android.os.Build\nimport android.os.Bundle\nimport android.provider.Settings\nimport android.widget.Button\nimport android.widget.EditText\nimport android.widget.Toast\nimport androidx.appcompat.app.AppCompatActivity\nimport androidx.core.content.ContextCompat\nimport androidx.lifecycle.lifecycleScope\nimport kotlinx.coroutines.Dispatchers\nimport kotlinx.coroutines.withContext\nimport kotlinx.coroutines.launch\n\nclass MainActivity : AppCompatActivity() {\n\n    private var screenCapture: ScreenCapture? = null\n\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContentView(R.layout.activity_main)\n\n        ApiClient.init(applicationContext)\n\n        val btnStartOverlay = findViewById<Button>(R.id.btn_start_overlay)\n        val btnRequestCapture = findViewByI"
+  },
+  {
+    "path": "app/src/main/res/drawable/ic_launcher_foreground.xml",
+    "size": 779,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<vector xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    android:width=\"108dp\" android:height=\"108dp\" android:viewportWidth=\"108\" android:viewportHeight=\"108\">\n    <path\n        android:fillColor=\"#0B0B0B\"\n        android:pathData=\"M0,0h108v108h-108z\"/>\n    <group android:translateX=\"54\" android:translateY=\"54\">\n        <path android:fillColor=\"#D4AF37\" android:strokeWidth=\"1\" android:strokeColor=\"#D4AF37\"\n            android:pathData=\"M-30,-20 L30,-20 L10,30 L-10,30 Z\"/>\n        <!-- Monogram WF stylized -->\n        <path android:fillColor=\"#D4AF37\" android:pathData=\"M-18,-6 L-10,-6 L-10,18 L-18,18 Z\"/>\n        <path android:fillColor=\"#D4AF37\" android:pathData=\"M2,-6 L10,-6 L10,18 L2,18 Z\"/>\n    </group>\n</vector>\n"
+  },
+  {
+    "path": "app/src/main/res/layout/activity_main.xml",
+    "size": 5245,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    android:layout_width=\"match_parent\" android:layout_height=\"match_parent\"\n    android:background=\"@color/black_primary\">\n\n    <com.google.android.material.appbar.AppBarLayout\n        android:layout_width=\"match_parent\" android:layout_height=\"wrap_content\">\n        <com.google.android.material.appbar.MaterialToolbar\n            android:id=\"@+id/toolbar\"\n            android:layout_width=\"match_parent\"\n            android:layout_height=\"56dp\"\n            android:background=\"@color/black_primary\"\n            android:titleTextAppearance=\"@style/Text.Headline\"\n            android:title=\"وكالة فخر العرب\"\n            app:titleCentered=\"true\"/>\n    </com.google.android.material.appbar.AppBarLayout>\n\n    <ScrollView android:layout_width=\"match_parent\" android:layout_height=\"match_parent\"\n "
+  },
+  {
+    "path": "app/src/main/res/layout/splash_activity.xml",
+    "size": 1000,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<FrameLayout xmlns:android=\"http://schemas.android.com/apk/res/android\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" android:background=\"@color/black_primary\">\n    <LinearLayout android:orientation=\"vertical\" android:layout_gravity=\"center\" android:layout_width=\"match_parent\" android:layout_height=\"match_parent\" android:gravity=\"center\">\n        <ImageView android:layout_width=\"120dp\" android:layout_height=\"120dp\" android:src=\"@drawable/ic_launcher_foreground\" android:layout_gravity=\"center\"/>\n        <TextView android:layout_width=\"wrap_content\" android:layout_height=\"wrap_content\" style=\"@style/Text.Headline\" android:text=\"وكالة فخر العرب\" android:layout_marginTop=\"12dp\"/>\n        <TextView android:layout_width=\"wrap_content\" android:layout_height=\"wrap_content\" style=\"@style/Text.Subtle\" android:text=\"تحليلات ذكية وفخمة\" android:layout_marginTop=\"6dp\"/>\n    </LinearLayout>\n</FrameLayout>\n"
+  },
+  {
+    "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+    "size": 211,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<foreground xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <bitmap android:gravity=\"center\" android:src=\"@drawable/ic_launcher_foreground\"/>\n</foreground>\n"
+  },
+  {
+    "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+    "size": 211,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<foreground xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <bitmap android:gravity=\"center\" android:src=\"@drawable/ic_launcher_foreground\"/>\n</foreground>\n"
+  },
+  {
+    "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher_background.xml",
+    "size": 175,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<background xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <color android:color=\"@color/black_primary\"/>\n</background>\n"
+  },
+  {
+    "path": "app/src/main/res/values/colors.xml",
+    "size": 416,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <color name=\"black_primary\">#0B0B0B</color>\n    <color name=\"black_secondary\">#121212</color>\n    <color name=\"gold_primary\">#D4AF37</color>\n    <color name=\"gold_dark\">#B8860B</color>\n    <color name=\"white\">#FFFFFF</color>\n    <color name=\"accent\">#FFD700</color>\n    <color name=\"surface\">#1E1E1E</color>\n    <color name=\"muted\">#9E9E9E</color>\n</resources>\n"
+  },
+  {
+    "path": "app/src/main/res/values/themes.xml",
+    "size": 1099,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources xmlns:tools=\"http://schemas.android.com/tools\">\n    <style name=\"Theme.Wakala\" parent=\"Theme.MaterialComponents.DayNight.DarkActionBar\">\n        <item name=\"colorPrimary\">@color/black_primary</item>\n        <item name=\"colorPrimaryVariant\">@color/black_secondary</item>\n        <item name=\"colorOnPrimary\">@color/gold_primary</item>\n        <item name=\"colorSecondary\">@color/gold_primary</item>\n        <item name=\"android:statusBarColor\">@color/black_primary</item>\n        <item name=\"android:windowBackground\">@color/black_primary</item>\n        <item name=\"android:navigationBarColor\">@color/black_primary</item>\n        <item name=\"materialButtonStyle\">@style/Widget.Wakala.Button</item>\n    </style>\n\n    <style name=\"Widget.Wakala.Button\" parent=\"Widget.MaterialComponents.Button\">\n        <item name=\"android:backgroundTint\">@color/gold_primary</item>\n        <item name=\"android:textColor\">@color/black_primary</item>\n        <item name=\"co"
+  },
+  {
+    "path": "app/src/main/res/values/styles.xml",
+    "size": 533,
+    "sample": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n    <style name=\"Text.Headline\" parent=\"TextAppearance.MaterialComponents.Headline6\">\n        <item name=\"android:textColor\">@color/gold_primary</item>\n    </style>\n    <style name=\"Text.Body\" parent=\"TextAppearance.MaterialComponents.Body1\">\n        <item name=\"android:textColor\">@color/white</item>\n    </style>\n    <style name=\"Text.Subtle\" parent=\"TextAppearance.MaterialComponents.Caption\">\n        <item name=\"android:textColor\">@color/muted</item>\n    </style>\n</resources>\n"
+  },
+  {
+    "path": "deploy/nginx.sample.conf",
+    "size": 280,
+    "sample": ""
+  },
+  {
+    "path": "server/Dockerfile",
+    "size": 249,
+    "sample": ""
+  },
+  {
+    "path": "server/ai_service/trainer.py",
+    "size": 1755,
+    "sample": "# trainer: train and save a model using sklearn when run as script or from API\ndef train_from_data(X, y, output_path='model.joblib'):\n    try:\n        from sklearn.ensemble import RandomForestClassifier\n        from sklearn.preprocessing import LabelEncoder\n        from sklearn.model_selection import cross_val_score\n        import joblib, os, json, time, tempfile\n        # ensure X is 2D and y is list-like\n        model = RandomForestClassifier(n_estimators=100, random_state=42)\n        # encode labels if they are strings\n        le = LabelEncoder()\n        y_enc = le.fit_transform(y)\n        # compute simple CV score\n        try:\n            scores = cross_val_score(model, X, y_enc, cv=3)\n            cv_score = float(scores.mean())\n        except Exception:\n            cv_score = None\n        model.fit(X, y_enc)\n        # atomic save: write to temp file then replace\n        model_dir = os.path.dirname(output_path)\n        os.makedirs(model_dir, exist_ok=True)\n        tmp_model = tempf"
+  },
+  {
+    "path": "server/ai_service/ai_main.py",
+    "size": 2283,
+    "sample": "# Simple AI wrapper: exposes `predict(data)` with probabilities when available\nfrom . import features\nimport os, joblib, json\n\nMODEL_PATH = os.path.join(os.path.dirname(__file__), 'model.joblib')\nMETA_PATH = os.path.join(os.path.dirname(__file__), 'model_meta.json')\n\ndef _load_model():\n    if not os.path.exists(MODEL_PATH):\n        return None, None\n    payload = joblib.load(MODEL_PATH)\n    model = payload.get('model') if isinstance(payload, dict) else payload\n    le = payload.get('label_encoder') if isinstance(payload, dict) else None\n    return model, le\n\ndef predict(data: dict):\n    try:\n        model, le = _load_model()\n        x = features.vectorize(data.get('features', {}))\n        if model is None:\n            opts = data.get('options') or []\n            if opts:\n                return {'label': opts[0], 'source': 'heuristic'}\n            return {'label': None, 'source': 'none'}\n        # ensure x is list-like 1D\n        if not hasattr(x, '__len__'):\n            x = [x]\n        "
+  }
+]
